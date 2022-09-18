@@ -1,18 +1,26 @@
-from flask import Flask, render_template, Response, request
+from flask import Flask, render_template, Response, request, send_file, send_from_directory
 import cv2
 import datetime, time
 import os, sys
 import numpy as np
 from time import perf_counter
 from threading import Thread
-from animations.main import *
+from animations.main import MU_effect, Barca_effect
 from animations.trial import tiktok_animation
+from camera import * 
 
 app=Flask(__name__, static_url_path='/static/', template_folder='static/templates')
 app.static_folder = 'static'
-camera=cv2.VideoCapture(0)
+app.config['UPLOAD_FOLDER'] = 'Upload'
+global global_frame, video_camera, rec, cap
+rec, cap = 1, 1
+
+video_camera = None
+global_frame = None
+
 
 def generate_frames_1():
+    camera=cv2.VideoCapture(0)
     i = 0
     while True:
         ## read the camera frame
@@ -31,7 +39,32 @@ def generate_frames_1():
         except Exception as e:
             pass
 
+def record_generate_frames_1():
+    camera=cv2.VideoCapture(0)
+    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    out = cv2.VideoWriter('Upload/Anima1.avi', fourcc, 20.0, (1080, 500))
+    i = 0
+    while True:
+        ## read the camera frame
+        success,frame=camera.read()
+        if not success:
+            break
+        else:
+            frame = tiktok_animation(frame, 1, i)
+            out.write(frame)
+        try:
+            i+=1
+            ret, buffer=cv2.imencode('.jpg',frame)
+            frame=buffer.tobytes()
+            yield(b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        except Exception as e:
+            pass
+    out.release()
+
 def generate_frames_2():
+    camera=cv2.VideoCapture(0)
+    camera.get(cv2.CAP_PROP_BUFFERSIZE)
     while True:
         ## read the camera frame
         success,frame=camera.read()
@@ -39,6 +72,7 @@ def generate_frames_2():
             break
         else:
             frame = MU_effect(frame)
+
             try:
                 ret, buffer=cv2.imencode('.jpg',frame)
                 frame=buffer.tobytes()
@@ -48,7 +82,30 @@ def generate_frames_2():
             except Exception as e:
                 pass
 
+def record_generate_frames_2():
+    camera=cv2.VideoCapture(0)
+    camera.get(cv2.CAP_PROP_BUFFERSIZE)    
+    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    out = cv2.VideoWriter('Upload/Anima2.avi', fourcc, 20.0, (640, 480))
+    while True:
+        ## read the camera frame
+        success,frame=camera.read()
+        if not success:
+            break
+        else:
+            frame = MU_effect(frame)
+            out.write(frame)
+        try:
+            ret, buffer=cv2.imencode('.jpg',frame)
+            frame=buffer.tobytes()
+            yield(b'--frame\r\n'
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        except Exception as e:
+            pass
+    out.release()
+
 def generate_frames_3():
+    camera=cv2.VideoCapture(0)
     fps = camera.get(cv2.CAP_PROP_FPS)
     height = camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
     scale_fact = 1
@@ -57,7 +114,6 @@ def generate_frames_3():
     frames = []
     t1 = perf_counter()
     while True:
-        ## read the camera frame
         success,frame=camera.read()
         if not success:
             break
@@ -83,32 +139,186 @@ def generate_frames_3():
                     b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
             except Exception as e:
                 pass
+
+def record_generate_frames_3():
+    camera=cv2.VideoCapture(0)
+    fps = camera.get(cv2.CAP_PROP_FPS)
+    height = camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    scale_fact = 1
+    segment_count = fps*3
+    segment_height = int(height*scale_fact/segment_count)
+    print('segment_height:', segment_height)
+    fourcc = cv2.VideoWriter_fourcc(*'MJPG')
+    out = cv2.VideoWriter('Upload/Anima3.avi', fourcc, 20.0, (640, 450))
+    frames = []
+    temp = None
+    t1 = perf_counter()
+    while True:
+        success,frame=camera.read()
+        X = frame
+        if not success:
+            break
+        else:
+            if scale_fact != 1:
+                frame = cv2.resize(frame, (int(frame.shape[1]*scale_fact), int(frame.shape[0]*scale_fact)))
+            frames.append(frame)
+            
+            if len(frames) >= segment_count:    
+                segments = []
+                for i,frame in enumerate(frames):
+                    X = frame[i*segment_height:(i+1)*segment_height]
+                    segments.append(X)
+                frame = np.concatenate(segments, axis=0)
+                print(frame.shape)
+                out.write(frame)
+                frames.pop(0)
+                t2 = perf_counter()
+                delay = int(1000/fps - (t2-t1)*1000)
+                delay = delay if delay >1 else 1
+                t1 = perf_counter()
+            try:
+                ret, buffer=cv2.imencode('.jpg',frame)
+                frame=buffer.tobytes()
+                yield(b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+            except Exception as e:
+                pass
+    out.release()
+
+def generate_frames_4():
+    camera=cv2.VideoCapture(0)
+    while True:
+        ## read the camera frame
+        success,frame=camera.read()
+        if not success:
+            break
+        else:
+            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            img_blur = cv2.GaussianBlur(frame, (23, 23), 0, 0)
+            img_blend = cv2.divide(frame, img_blur, scale=200)
+        try:
+            ret, buffer=cv2.imencode('.jpg',img_blend)
+            frame=buffer.tobytes()
+            yield(b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + img_blend + b'\r\n')
+        except Exception as e:
+                pass
+
+def record_generate_frames_4():
+    camera=cv2.VideoCapture(0)
+    camera.get(cv2.CAP_PROP_BUFFERSIZE)    
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter('Upload/Anima4.avi', fourcc, 40.0, (640, 480))
+    while True:
+        success,frame= camera.read()
+        if not success:
+            break
+        else:
+            frame = Barca_effect(frame)
+            out.write(frame)
+        try:
+            ret, buffer=cv2.imencode('.jpg', frame)
+            frame=buffer.tobytes()
+            yield(b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        except Exception as e:
+                pass
+    out.release()
+
+
 @app.route('/')
 def Home():
     return render_template('home.html')
 
-@app.route('/animation_1')
+@app.route('/download/<path:filename>', methods=['GET', 'POST'])
+def download(filename):
+    # Appending app path to upload folder path within app root folder
+    uploads = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
+    return send_from_directory(directory=uploads, filename=filename)
+
+@app.route('/animation_1', methods=['POST','GET'])
 def Animation1():
-    return render_template('Animation1.html')
-@app.route('/animation_2')
+    global rec, cap
+    if request.method == 'POST':
+        if request.form.get('cap') == "Turn on/off Webcam":
+            cap *= -1
+            return render_template('Animation1.html', cap=cap)
+        elif request.form.get('rec') == "Recording":
+            rec *= -1
+            return render_template('Animation1.html', rec=rec)
+    else:
+        return render_template('Animation1.html')
+
+
+@app.route('/animation_2', methods=['POST','GET'])
 def Animation2():
-    return render_template('Animation2.html')
-@app.route('/animation_3')
+    global rec, cap
+    if request.method == 'POST':
+        if request.form.get('cap') == "Turn on/off Webcam":
+            cap *= -1
+            return render_template('Animation2.html', cap=cap)
+        elif request.form.get('rec') == "Recording":
+            rec *= -1
+            return render_template('Animation2.html', rec=rec)
+    else:
+        return render_template('Animation2.html')
+
+
+@app.route('/animation_3', methods=['POST','GET'])
 def Animation3():
-    return render_template('Animation3.html')
+    global rec, cap
+    if request.method == 'POST':
+        if request.form.get('cap') == "Turn on/off Webcam":
+            cap *= -1
+            return render_template('Animation3.html', cap=cap)
+        elif request.form.get('rec') == "Recording":
+            rec *= -1
+            return render_template('Animation3.html', rec=rec)
+    else:
+        return render_template('Animation3.html')
+
+@app.route('/animation_4', methods=['POST','GET'])
+def Animation4():
+    global rec, cap
+    if request.method == 'POST':
+        if request.form.get('cap') == "Turn on/off Webcam":
+            cap *= -1
+            return render_template('Animation4.html', cap=cap)
+        elif request.form.get('rec') == "Recording":
+            rec *= -1
+            return render_template('Animation4.html', rec=rec)
+    else:
+        return render_template('Animation4.html')
 
 
 @app.route('/file/video_animation_1')
 def video_1():
     return Response(generate_frames_1(),mimetype='multipart/x-mixed-replace; boundary=frame')
-
 @app.route('/file/video_animation_2')
 def video_2():
     return Response(generate_frames_2(),mimetype='multipart/x-mixed-replace; boundary=frame')
-
 @app.route('/file/video_animation_3')
 def video_3():
     return Response(generate_frames_3(),mimetype='multipart/x-mixed-replace; boundary=frame')
+@app.route('/file/video_animation_4')
+def video_4():
+    return Response(generate_frames_4(),mimetype='multipart/x-mixed-replace; boundary=frame')
+
+
+
+@app.route('/recording/video_animation_1')
+def record_video_1():
+    return Response(record_generate_frames_1(),mimetype='multipart/x-mixed-replace; boundary=frame')
+@app.route('/recording/video_animation_2')
+def record_video_2():
+    return Response(record_generate_frames_2(),mimetype='multipart/x-mixed-replace; boundary=frame')
+@app.route('/recording/video_animation_3')
+def record_video_3():
+    return Response(record_generate_frames_3(),mimetype='multipart/x-mixed-replace; boundary=frame')
+@app.route('/recording/video_animation_4')
+def record_video_4():
+    return Response(record_generate_frames_4(),mimetype='multipart/x-mixed-replace; boundary=frame')
+
 
 if __name__=="__main__":
     app.run(debug=True)

@@ -6,7 +6,7 @@ img = np.zeros((500, 1080, 3), np.uint8)
 i = 0
 def tiktok_animation(frame, speed=1, i=0):   
     frame = cv2.resize(frame ,(1080, 500))
-    frame = np.fliplr(frame)
+    # frame = np.fliplr(frame)
     h, w = frame.shape[:2]
     img[:,i+speed:w,:] = frame[:, i+speed:w, :]
     cv2.line(img, (i+ speed, 0), (i+speed, h), (0,255,0), 2)
