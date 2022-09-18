@@ -1,6 +1,8 @@
 # CS231-Camera-Web-App
 In this project, we create many animations which is simmilar to TikTok Animations and background removal using OpenCV, Flask, Mediapipe, etc.
 
+This is the final project of CS231 course (Introduction to Computer Vision) of UIT.
+
 # How to set up
 <h4>1. Clone the code from github </h4>
 
