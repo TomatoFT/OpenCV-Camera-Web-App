@@ -8,7 +8,7 @@ from threading import Thread
 from animations.main import MU_effect, Barca_effect
 from animations.trial import tiktok_animation
 from camera import * 
-
+from animations.segmentation import Segmentation
 app=Flask(__name__, static_url_path='/static/', template_folder='static/templates')
 app.static_folder = 'static'
 app.config['UPLOAD_FOLDER'] = 'Upload'
@@ -225,6 +225,48 @@ def record_generate_frames_4():
                 pass
     out.release()
 
+def generate_frames_rmBG():
+    camera=cv2.VideoCapture(0)
+    imgBg = cv2.imread("Photo/9.jpg")
+    seg = Segmentation()
+    while True:
+        ## read the camera frame
+        success,frame=camera.read()
+        if not success:
+            break
+        else:
+            frame, imgBg = cv2.resize(img, (640, 480)), cv2.resize(imgBg, (640, 480))
+            frame = seg.removeBG(frame, imgBg, threshold=0.55)
+        try:
+            ret, buffer=cv2.imencode('.jpg',frame)
+            frame=buffer.tobytes()
+            yield(b'--frame\r\n'
+                    b'Content-Type: image/jpeg\r\n\r\n' + img_blend + b'\r\n')
+        except Exception as e:
+                pass
+
+def record_generate_frames_rmBG():
+    camera=cv2.VideoCapture(0)
+    imgBg = cv2.imread("Photo/9.jpg")
+    seg = Segmentation()
+    fourcc = cv2.VideoWriter_fourcc(*'XVID')
+    out = cv2.VideoWriter('Upload/rmBG.avi', fourcc, 40.0, (640, 480))
+    while True:
+        success,frame= camera.read()
+        if not success:
+            break
+        else:
+            frame, imgBg = cv2.resize(frame, (640, 480)), cv2.resize(imgBg, (640, 480))
+            frame = seg.removeBG(frame, imgBg, threshold=0.55)
+            out.write(frame)
+        try:
+            ret, buffer=cv2.imencode('.jpg', frame)
+            frame=buffer.tobytes()
+            yield(b'--frame\r\n'
+                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+        except Exception as e:
+                pass
+    out.release()
 
 @app.route('/')
 def Home():
@@ -290,6 +332,19 @@ def Animation4():
     else:
         return render_template('Animation4.html')
 
+@app.route('/Background_removal', methods=['POST','GET'])
+def Background_removal():
+    global rec, cap
+    if request.method == 'POST':
+        if request.form.get('cap') == "Turn on/off Webcam":
+            cap *= -1
+            return render_template('Background-removal.html', cap=cap)
+        elif request.form.get('rec') == "Recording":
+            rec *= -1
+            return render_template('Background-removal.html', rec=rec)
+    else:
+        return render_template('Background-removal.html')
+
 
 @app.route('/file/video_animation_1')
 def video_1():
@@ -303,7 +358,9 @@ def video_3():
 @app.route('/file/video_animation_4')
 def video_4():
     return Response(generate_frames_4(),mimetype='multipart/x-mixed-replace; boundary=frame')
-
+@app.route('/file/BG_removal')
+def video_BG_removal():
+    return Response(generate_frames_rmBG(),mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 @app.route('/recording/video_animation_1')
@@ -318,6 +375,9 @@ def record_video_3():
 @app.route('/recording/video_animation_4')
 def record_video_4():
     return Response(record_generate_frames_4(),mimetype='multipart/x-mixed-replace; boundary=frame')
+@app.route('/recording/BG_removal')
+def record_video_BG_removal():
+    return Response(record_generate_frames_rmBG(),mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 if __name__=="__main__":

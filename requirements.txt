@@ -3,3 +3,4 @@ caer
 mediapipe
 matplotlib
 flask
+gunicorn

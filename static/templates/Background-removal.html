@@ -1,0 +1,33 @@
+{% extends "home.html" %}
+{% block content %}
+{% if rec == -1 %}
+<img src="{{ url_for('record_video_BG_removal') }}" width="100%"/>
+{% elif cap == -1 %}
+<img src="{{ url_for('video_BG_removal') }}" width="100%"/>
+{% endif %}
+<form action="/download/rmBG.avi">
+    <a href="{{ url_for('download', filename='rmBG.avi')}}"><button> Download the recorded file</button></a>
+</form>
+{% endblock %}
+
+{% block Download %}
+<h4>You can record the video here</h4>
+<p class="subtitle">You are in the Background Removal page</p>
+{% endblock %}
+
+<!-- {% block functions %}
+<div class="client alpha">
+    <a href="{{url_for('Animation1')}}"><img id="transparent" src="{{url_for('static', filename='images/Anim1.png')}}" width="80%"/></a>
+</div>
+<div class="client beta">
+    <a href="{{url_for('Animation2')}}"><img id="transparent" src="{{url_for('static', filename='images/Anim2.png')}}" width="80%" /></a>
+</div>
+<div class="client delta">
+    <a href="{{url_for('Animation3')}}"><img src="{{url_for('static', filename='images/Anim3.png')}}" width="80%" /></a>
+</div>
+<div class="client omega">
+    <a href="{{url_for('Animation4')}}"><img id="transparent" src="{{url_for('static', filename='images/Anim4.png')}}" width="80%" /></a>
+</div>
+{% endblock %} -->
+
+{% block name %}Background {% endblock %}
