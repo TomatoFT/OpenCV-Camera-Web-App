@@ -3,6 +3,7 @@ In this project, we create many animations which is simmilar to TikTok Animation
 
 # How to set up
 <h4>1. Clone the code from github </h4>
+
 ```
 mkdir Camera Flask App
 
@@ -13,6 +14,7 @@ cd Camera_Flask_App
 ```
 
 <h4>2. Create and Enter Anaconda Environment</h4>
+
 ```
 
 conda create -name open
@@ -24,7 +26,6 @@ conda activate open
 <h4>3. Install dependencies</h4>
 
 ```
-
 conda install -c anaconda pip
 
 pip install -r requirements.txt
@@ -32,6 +33,7 @@ pip install -r requirements.txt
 ```
 
 <h4>4. Activate the Flask and run web on local host</h4>
+
 ```
 
 python web.py
@@ -39,9 +41,13 @@ python web.py
 ```
 
 <h4>5. Exit Anaconda environment</h4>
+
 ```
 conda deactivate
 
 ```
-#NOTICE
-If the camera is not open, you can try to Ctrl + C while running the flask web on browser and reactivate it again
+
+
+<h1>NOTICE</h1>
+  
+<p>If the camera is not open, you can try to Ctrl + C while running the flask web on browser and reactivate it again</p>
