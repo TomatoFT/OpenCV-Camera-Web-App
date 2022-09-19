@@ -19,7 +19,7 @@ cd Camera_Flask_App
 
 ```
 
-conda create -name open
+conda create --name open
 
 conda activate open
 
