@@ -1,160 +1,59 @@
-from flask import Flask, render_template, Response, request
 import cv2
-import datetime, time
-import os, sys
-import numpy as np
-from threading import Thread
-from animations.main import *
-from animations.trial import tiktok_animation
-global capture,rec_frame, grey, switch, neg, face, rec, out
-capture=0
-grey=0
-neg=0
-face=0
-switch=1
-rec=0
-#make shots directory to save pics
-try:
-    os.mkdir('./shots')
-except OSError as error:
-    pass
+import mediapipe as mp
 
-#Load pretrained face detection model    
-net = cv2.dnn.readNetFromCaffe('./saved_model/deploy.prototxt.txt', './saved_model/res10_300x300_ssd_iter_140000.caffemodel')
+video = cv2.VideoCapture(0)
 
-#instatiate flask app  
-app = Flask(__name__, template_folder='./templates')
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands()
+mp_draw = mp.solutions.drawing_utils
 
+def position_data(lmlist):
+    global wrist, thumb_tip, index_mcp, index_tip, midle_mcp, midle_tip, ring_tip, pinky_tip
+    wrist = (lmlist[0][0], lmlist[0][1])
+    thumb_tip = (lmlist[4][0], lmlist[4][1])
+    index_mcp = (lmlist[5][0], lmlist[5][1])
+    index_tip = (lmlist[8][0], lmlist[8][1])
+    midle_mcp = (lmlist[9][0], lmlist[9][1])
+    midle_tip = (lmlist[12][0], lmlist[12][1])
+    ring_tip  = (lmlist[16][0], lmlist[16][1])
+    pinky_tip = (lmlist[20][0], lmlist[20][1])
+def draw_line(p1, p2, size=5):
+    cv2.line(frame, p1, p2, (50,50,255), size)
+    cv2.line(frame, p1, p2, (255, 255, 255), round(size / 2))
+def draw_line(p1, p2, size=5):
+    cv2.line(frame, p1, p2, (50,50,255), size)
+    cv2.line(frame, p1, p2, (255, 255, 255), round(size / 2))
 
-camera = cv2.VideoCapture(0)
-
-def record(out):
-    global rec_frame
-    while(rec):
-        time.sleep(0.05)
-        out.write(rec_frame)
+def calculate_distance(p1,p2):
+    x1, y1, x2, y2 = p1[0], p1[1], p2[0], p2[1]
+    lenght = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** (1.0 / 2)
+    return lenght
 
 
-def detect_face(frame):
-    global net
-    (h, w) = frame.shape[:2]
-    blob = cv2.dnn.blobFromImage(cv2.resize(frame, (300, 300)), 1.0,
-        (300, 300), (104.0, 177.0, 123.0))   
-    net.setInput(blob)
-    detections = net.forward()
-    confidence = detections[0, 0, 0, 2]
+while True:
+    _, frame = video.read()
+    frame=cv2.flip(frame,1)
+    # frame=cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
+    # frame=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    results = hands.process(frame)
+    if results.multi_hand_landmarks:
+        for hand in results.multi_hand_landmarks:
+            lmlist = []
+            for id, lm in enumerate(hand.landmark):
+                h, w, c = frame.shape
+                x, y = int(lm.x*w), int(lm.y*h)
+                lmlist.append([x,y])
+                # cv2.circle(frame, (x,y), 6, (50,50,255), 3)
+            position_data(lmlist)
+            draw_line(wrist, thumb_tip)
+            draw_line(wrist, index_tip)
+            draw_line(wrist, pinky_tip)
+            draw_line(wrist, midle_tip)
+            draw_line(wrist, ring_tip)
 
-    if confidence < 0.5:            
-        return frame           
-
-    box = detections[0, 0, 0, 3:7] * np.array([w, h, w, h])
-    (startX, startY, endX, endY) = box.astype("int")
-    try:
-        frame=frame[startY:endY, startX:endX]
-        (h, w) = frame.shape[:2]
-        r = 480 / float(h)
-        dim = ( int(w * r), 480)
-        frame=cv2.resize(frame,dim)
-    except Exception as e:
-        pass
-    return frame
- 
-
-def gen_frames():  # generate frame by frame from camera
-    global out, capture, rec_frame
-    i = 0
-    while True:
-        success, frame = camera.read() 
-        if True:
-            if(face):                
-                frame= detect_face(frame)
-            if(grey):
-                frame = tiktok_animation(frame, 1, i)
-                i+=1
-            if(neg):
-                frame= MU_effect(frame)
-            if(capture):
-                capture=0
-                now = datetime.datetime.now()
-                p = os.path.sep.join(['shots', "shot_{}.png".format(str(now).replace(":",''))])
-                cv2.imwrite(p, frame)
-            
-            if(rec):
-                rec_frame=frame
-                frame= cv2.putText(cv2.flip(frame,1),"Recording...", (0,25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255),4)
-                frame=cv2.flip(frame,1)
-            
-                
-            try:
-                ret, buffer = cv2.imencode('.jpg', cv2.flip(frame,1))
-                frame = buffer.tobytes()
-                yield (b'--frame\r\n'
-                       b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-            except Exception as e:
-                pass
-                
-        else:
-            pass
-
-
-@app.route('/')
-def index():
-    return render_template('index.html')
-    
-    
-@app.route('/video_feed')
-def video_feed():
-    return Response(gen_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-@app.route('/requests',methods=['POST','GET'])
-def tasks():
-    global switch,camera
-    if request.method == 'POST':
-        if request.form.get('click') == 'Capture':
-            global capture
-            capture=1
-        elif  request.form.get('grey') == 'Grey':
-            global grey
-            grey=not grey
-        elif  request.form.get('neg') == 'Negative':
-            global neg
-            neg=not neg
-        elif  request.form.get('face') == 'Face Only':
-            global face
-            face=not face 
-            # if(face):
-            #     time.sleep(4)   
-        elif  request.form.get('stop') == 'Stop/Start':
-            
-            if(switch==1):
-                switch=0
-                camera.release()
-                cv2.destroyAllWindows()
-                
-            else:
-                camera = cv2.VideoCapture(0)
-                switch=1
-        elif  request.form.get('rec') == 'Start/Stop Recording':
-            global rec, out
-            rec= not rec
-            if(rec):
-                now=datetime.datetime.now() 
-                fourcc = cv2.VideoWriter_fourcc(*'XVID')
-                out = cv2.VideoWriter('vid_{}.wav'.format(str(now).replace(":",'')), fourcc, 20.0, (640, 480))
-                #Start new thread for recording the video
-                thread = Thread(target = record, args=[out,])
-                thread.start()
-            elif(rec==False):
-                out.release()
-                          
-                 
-    elif request.method=='GET':
-        return render_template('index.html')
-    return render_template('index.html')
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
-    
-# camera.release()
-# cv2.destroyAllWindows()     
+    cv2.imshow('frame', frame)
+    k = cv2.waitKey(1)
+    if k==ord('q'):
+        break
+video.release()
+cv2.destroyAllWindows()
