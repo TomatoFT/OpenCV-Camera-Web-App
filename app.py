@@ -57,5 +57,6 @@ while True:
     k = cv2.waitKey(1)
     if k==ord('q'):
         break
+print('Video released')
 video.release()
 cv2.destroyAllWindows()
