@@ -8,6 +8,7 @@ from threading import Thread
 from animations.main import MU_effect, Barca_effect
 from animations.trial import tiktok_animation 
 from animations.segmentation import Segmentation
+from animations.ar import doctor_strange
 
 
 app=Flask(__name__, static_url_path='/static/', template_folder='static/templates')
@@ -214,7 +215,7 @@ def record_generate_frames_4():
         if not success:
             break
         else:
-            frame = Barca_effect(frame)
+            frame = doctor_strange(frame)
             out.write(frame)
         try:
             ret, buffer=cv2.imencode('.jpg', frame)

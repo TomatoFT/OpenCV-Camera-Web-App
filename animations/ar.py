@@ -1,109 +1,112 @@
-
-import numpy as np
 import cv2
-import imutils
+import mediapipe as mp
 
-# function to detect ArUco Markers
-def findArucoMarkers(img, markerSize = 6, totalMarkers=250, draw=True):
-    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    key = getattr(cv2.aruco, f'DICT_{markerSize}X{markerSize}_{totalMarkers}')
-    
-    
-    #Load the dictionary that was used to generate the markers.
-    arucoDict = cv2.aruco.Dictionary_get(key)
-    
-    # Initialize the detector parameters using default values
-    arucoParam = cv2.aruco.DetectorParameters_create()
-    
-    # Detect the markers
-    bboxs, ids, rejected = cv2.aruco.detectMarkers(gray, arucoDict, parameters = arucoParam)
-    return bboxs, ids
-    
-# Superimposing the image on the aruco markers detected in the video 
-imgH=480
-imgW=640
+# video = cv2.VideoCapture(0)
+mp_hands = mp.solutions.hands
+hands = mp_hands.Hands()
+mp_draw = mp.solutions.drawing_utils
+img_1 = cv2.imread('Photo/magic_circle_ccw.png', -1)
+img_2 = cv2.imread('Photo/magic_circle_cw.png', -1)
 
-video = cv2. VideoCapture(0)
+def position_data(lmlist):
+    global wrist, thumb_tip, index_mcp, index_tip, midle_mcp, midle_tip, ring_tip, pinky_tip
+    wrist = (lmlist[0][0], lmlist[0][1])
+    thumb_tip = (lmlist[4][0], lmlist[4][1])
+    index_mcp = (lmlist[5][0], lmlist[5][1])
+    index_tip = (lmlist[8][0], lmlist[8][1])
+    midle_mcp = (lmlist[9][0], lmlist[9][1])
+    midle_tip = (lmlist[12][0], lmlist[12][1])
+    ring_tip  = (lmlist[16][0], lmlist[16][1])
+    pinky_tip = (lmlist[20][0], lmlist[20][1])
 
-ret, video_frame=video.read()
-image = cv2.imread('Photo/1.jpg')
-image = cv2.resize(image, (imgH, imgW))
-print('Hello')
-while(video.isOpened()):
-    if ret==True:
-        refPts=[]  
-        #Detect the Aruco markers on the video frame
-        arucofound =findArucoMarkers(video_frame, totalMarkers=100)
-        h, w = video_frame.shape[:2]
-        
-        # if the aruco markers are detected
-        if  len(arucofound[0])!=0:
-                
-                for Corner, id in zip(arucofound[0], arucofound[1]):
-                    corners = Corner.reshape((4, 2))
-                    (topLeft, topRight, bottomRight, bottomLeft) = corners
-                    topRight = (int(topRight[0]), int(topRight[1]))
-                    bottomRight = (int(bottomRight[0]), int(bottomRight[1]))
-                    bottomLeft = (int(bottomLeft[0]), int(bottomLeft[1]))
-                    topLeft = (int(topLeft[0]), int(topLeft[1]))
-                    # draw lines around the marker and display the marker id
-                    cv2.line(video_frame, topLeft, topRight, (0, 255, 0), 2)
-                    cv2.line(video_frame, topRight, bottomRight, (0, 255, 0), 2)
-                    cv2.line(video_frame, bottomRight, bottomLeft, (0, 255, 0), 2)
-                    cv2.line(video_frame, bottomLeft, topLeft, (0, 255, 0), 2)                    
-                    cv2.putText(video_frame, str(id),(topLeft[0], topLeft[1] - 15), cv2.FONT_HERSHEY_SIMPLEX,0.5, (0, 255, 0), 2)
-                    corner = np.squeeze(Corner)
-                    refPts.append(corner)
-                    # only when all the 4 markes are detected in the image
-                    if len(refPts)==4:
-                        ( refPtBR, refPtTR,refPtBL, refPtTL) = refPts
-                        video_pt = np.array([  refPtTL[3], refPtBL[3],refPtBR[2], refPtTR[3]])
-                       
-                        # grab the spatial dimensions of the  image and define the
-                        # transform matrix for the image in 
-                        #top-left, top-right,bottom-right, and bottom-left order
-                        image_pt = np.float32([[0,0], [h,0], [h,w], [0,w]])
-                        
-                        # compute the homography matrix between the image and the video frame
-                        matrix, _ = cv2.findHomography( image_pt, video_pt)
-                        
-                        #warp the  image to video frame based on the homography
-                        warped  = cv2.warpPerspective(image, matrix, (video_frame.shape[1], video_frame.shape[0]))
-                        
-                        #Create a mask representing region to 
-                        #copy from the warped image into the video frame.
-                        mask = np.zeros((imgH, imgW), dtype="uint8")
-                        cv2.fillConvexPoly(mask, video_pt.astype("int32"), (255, 255, 255),cv2.LINE_AA)
-                                                                    
-                        # give the source image a black border
-                        # surrounding it when applied to the source image,
-                        #you can apply a dilation operation
-                        rect = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
-                        mask = cv2.dilate(mask, rect, iterations=2)
-                        
-                        # Copy the mask with the three channel version by stacking it depth-wise,
-                        # This will allow copying the warped source image into the input image
-                        maskScaled = mask.copy() / 255.0
-                        maskScaled = np.dstack([maskScaled] * 3)
-                        print('Hello')
-                        # Copy the masked warped image into the video frame by
-                        # (1) multiplying the warped image and masked together, 
-                        # (2) multiplying the Video frame with the mask 
-                        # (3) adding the resulting images
-                        warpedMultiplied = cv2.multiply(warped.astype("float"), maskScaled)
-                        imageMultiplied = cv2.multiply(video_frame.astype(float), 1.0 - maskScaled)
-                        #imgout = video frame multipled with mask 
-                        #        + warped image multipled with mask
-                        output = cv2.add(warpedMultiplied, imageMultiplied)
-                        output = output.astype("uint8")
-                        cv2.imshow("output", output)
-    
-    ret, video_frame=video.read()
-    key = cv2.waitKey(20)
-    # if key q is pressed then break 
-    if key == 113:
-        break 
-    
-#finally destroy/close all open windows
-video.release()
-cv2.destroyAllWindows()
+
+def calculate_distance(p1,p2):
+    x1, y1, x2, y2 = p1[0], p1[1], p2[0], p2[1]
+    lenght = ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** (1.0 / 2)
+    return lenght
+
+
+def doctor_strange(frame):
+        # _, frame = video.read()
+        def draw_line(p1, p2, size=5):
+            cv2.line(frame, p1, p2, (50,50,255), size)
+            cv2.line(frame, p1, p2, (255, 255, 255), round(size / 2))
+        def transparent(targetImg, x, y, size=None):
+            if size is not None:
+                targetImg = cv2.resize(targetImg, size)
+
+            newFrame = frame.copy()
+            b, g, r, a = cv2.split(targetImg)
+            overlay_color = cv2.merge((b, g, r))
+            mask = cv2.medianBlur(a, 1)
+            h, w, _ = overlay_color.shape
+            roi = newFrame[y:y + h, x:x + w]
+
+            img1_bg = cv2.bitwise_and(roi.copy(), roi.copy(), mask=cv2.bitwise_not(mask))
+            img2_fg = cv2.bitwise_and(overlay_color, overlay_color, mask=mask)
+            newFrame[y:y + h, x:x + w] = cv2.add(img1_bg, img2_fg)
+
+            return newFrame 
+        frame=cv2.flip(frame,1)
+        results = hands.process(frame)
+        deg = 0
+        if results.multi_hand_landmarks:
+            for hand in results.multi_hand_landmarks:
+                lmlist = []
+                for id, lm in enumerate(hand.landmark):
+                    h, w, c = frame.shape
+                    x, y = int(lm.x*w), int(lm.y*h)
+                    lmlist.append([x,y])
+                    # cv2.circle(frame, (x,y), 6, (50,50,255), 3)
+                position_data(lmlist)
+                palm = calculate_distance(wrist, index_mcp)
+                distance = calculate_distance(index_mcp, pinky_tip)
+                ratio = distance/palm
+                print(ratio)
+                if (0.5<ratio<0.8):
+                    draw_line(wrist, thumb_tip)
+                    draw_line(wrist, index_tip)
+                    draw_line(wrist, pinky_tip)
+                    draw_line(wrist, midle_tip)
+                    draw_line(wrist, ring_tip)
+                    draw_line(thumb_tip, thumb_tip)
+                    draw_line(thumb_tip, index_tip)
+                    draw_line(thumb_tip, pinky_tip)
+                    draw_line(thumb_tip, midle_tip)
+                    draw_line(thumb_tip, ring_tip)
+                elif ratio > 0.8:
+                        centerx = midle_mcp[0]
+                        centery = midle_mcp[1]
+                        shield_size = 3.0
+                        diameter = round(palm * shield_size)
+                        x1 = round(centerx - (diameter / 2))
+                        y1 = round(centery - (diameter / 2))
+                        h, w, c = frame.shape
+                        if x1 < 0:
+                            x1 = 0
+                        elif x1 > w:
+                            x1 = w
+                        if y1 < 0:
+                            y1 = 0
+                        elif y1 > h:
+                            y1 = h
+                        if x1 + diameter > w:
+                            diameter = w - x1
+                        if y1 + diameter > h:
+                            diameter = h - y1
+                        shield_size = diameter, diameter
+                        ang_vel = 2.0
+                        deg = deg + ang_vel
+                        if deg > 360:
+                            deg = 0
+                        hei, wid, col = img_1.shape
+                        cen = (wid // 2, hei // 2)
+                        M1 = cv2.getRotationMatrix2D(cen, round(deg), 1.0)
+                        M2 = cv2.getRotationMatrix2D(cen, round(360 - deg), 1.0)
+                        rotated1 = cv2.warpAffine(img_1, M1, (wid, hei))
+                        rotated2 = cv2.warpAffine(img_2, M2, (wid, hei))
+                        if (diameter != 0):
+                            frame = transparent(rotated1, x1, y1, shield_size)
+                            frame = transparent(rotated2, x1, y1, shield_size)
+
+        return frame
