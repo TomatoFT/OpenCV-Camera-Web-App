@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-cap = cv2.VideoCapture(0)
+# cap = cv2.VideoCapture(0)
 img = np.zeros((500, 1080, 3), np.uint8)
 i = 0
 def tiktok_animation(frame, speed=1, i=0):   

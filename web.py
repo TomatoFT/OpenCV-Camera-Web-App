@@ -6,9 +6,10 @@ import numpy as np
 from time import perf_counter
 from threading import Thread
 from animations.main import MU_effect, Barca_effect
-from animations.trial import tiktok_animation
-from camera import * 
+from animations.trial import tiktok_animation 
 from animations.segmentation import Segmentation
+
+
 app=Flask(__name__, static_url_path='/static/', template_folder='static/templates')
 app.static_folder = 'static'
 app.config['UPLOAD_FOLDER'] = 'Upload'
@@ -17,7 +18,6 @@ rec, cap = 1, 1
 
 video_camera = None
 global_frame = None
-
 
 def generate_frames_1():
     camera=cv2.VideoCapture(0)
@@ -48,6 +48,7 @@ def record_generate_frames_1():
         ## read the camera frame
         success,frame=camera.read()
         if not success:
+            print('Not sucess')
             break
         else:
             frame = tiktok_animation(frame, 1, i)
@@ -276,7 +277,7 @@ def Home():
 def download(filename):
     # Appending app path to upload folder path within app root folder
     uploads = os.path.join(app.root_path, app.config['UPLOAD_FOLDER'])
-    return send_from_directory(directory=uploads, filename=filename)
+    return send_from_directory(directory=uploads, path=filename)
 
 @app.route('/animation_1', methods=['POST','GET'])
 def Animation1():
@@ -380,5 +381,7 @@ def record_video_BG_removal():
     return Response(record_generate_frames_rmBG(),mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-if __name__=="__main__":
-    app.run(debug=True)
+if __name__ == '__main__':
+    app.run()
+    
+ 

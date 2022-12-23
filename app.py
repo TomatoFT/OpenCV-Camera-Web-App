@@ -4,8 +4,8 @@ import datetime, time
 import os, sys
 import numpy as np
 from threading import Thread
-from main import *
-from trial import tiktok_animation
+from animations.main import *
+from animations.trial import tiktok_animation
 global capture,rec_frame, grey, switch, neg, face, rec, out
 capture=0
 grey=0

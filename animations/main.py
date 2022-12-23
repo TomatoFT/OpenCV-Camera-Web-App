@@ -6,9 +6,9 @@ import mediapipe as mp
 import matplotlib.pyplot as plt
 from animations.landmark_detection import *
 # Initialize the VideoCapture object to read from the webcam.
-camera_video = cv2.VideoCapture(0)
-camera_video.set(3,1280)
-camera_video.set(4,960)
+# camera_video = cv2.VideoCapture(0)
+# camera_video.set(3,1280)
+# camera_video.set(4,960)
 
 def MU_effect(frame):
     # Read the left and right eyes images.
