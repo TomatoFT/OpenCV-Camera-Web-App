@@ -20,9 +20,6 @@ def position_data(lmlist):
 def draw_line(p1, p2, size=5):
     cv2.line(frame, p1, p2, (50,50,255), size)
     cv2.line(frame, p1, p2, (255, 255, 255), round(size / 2))
-def draw_line(p1, p2, size=5):
-    cv2.line(frame, p1, p2, (50,50,255), size)
-    cv2.line(frame, p1, p2, (255, 255, 255), round(size / 2))
 
 def calculate_distance(p1,p2):
     x1, y1, x2, y2 = p1[0], p1[1], p2[0], p2[1]
@@ -45,11 +42,16 @@ while True:
                 lmlist.append([x,y])
                 # cv2.circle(frame, (x,y), 6, (50,50,255), 3)
             position_data(lmlist)
-            draw_line(wrist, thumb_tip)
-            draw_line(wrist, index_tip)
-            draw_line(wrist, pinky_tip)
-            draw_line(wrist, midle_tip)
-            draw_line(wrist, ring_tip)
+            palm = calculate_distance(wrist, index_mcp)
+            distance = calculate_distance(index_mcp, pinky_tip)
+            ratio = distance/palm
+            print(ratio)
+            if (0.5<ratio<0.8):
+                draw_line(wrist, thumb_tip)
+                draw_line(wrist, index_tip)
+                draw_line(wrist, pinky_tip)
+                draw_line(wrist, midle_tip)
+                draw_line(wrist, ring_tip)
 
     cv2.imshow('frame', frame)
     k = cv2.waitKey(1)
