@@ -6,6 +6,8 @@ video = cv2.VideoCapture(0)
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands()
 mp_draw = mp.solutions.drawing_utils
+img_1 = cv2.imread('magic_circle_ccw.png', -1)
+img_2 = cv2.imread('magic_circle_cw.png', -1)
 
 def position_data(lmlist):
     global wrist, thumb_tip, index_mcp, index_tip, midle_mcp, midle_tip, ring_tip, pinky_tip

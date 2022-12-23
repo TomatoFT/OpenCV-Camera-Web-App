@@ -15,7 +15,6 @@ app.static_folder = 'static'
 app.config['UPLOAD_FOLDER'] = 'Upload'
 global global_frame, video_camera, rec, cap
 rec, cap = 1, 1
-print('hello')
 video_camera = None
 global_frame = None
 
