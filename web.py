@@ -9,6 +9,7 @@ from animations.main import MU_effect, Barca_effect
 from animations.trial import tiktok_animation 
 from animations.segmentation import Segmentation
 from animations.ar import doctor_strange
+from animation_Tri.glasses_effect import glasses_effect
 
 
 app=Flask(__name__, static_url_path='/static/', template_folder='static/templates')
@@ -94,7 +95,7 @@ def record_generate_frames_2():
         if not success:
             break
         else:
-            frame = MU_effect(frame)
+            frame = glasses_effect(camera)
             out.write(frame)
         try:
             ret, buffer=cv2.imencode('.jpg',frame)
