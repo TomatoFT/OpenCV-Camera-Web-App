@@ -231,18 +231,18 @@ def generate_frames_rmBG():
     imgBg = cv2.imread("Photo/9.jpg")
     seg = Segmentation()
     while True:
-        ## read the camera frame
+        # read the camera frame
         success,frame=camera.read()
         if not success:
             break
         else:
-            frame, imgBg = cv2.resize(img, (640, 480)), cv2.resize(imgBg, (640, 480))
+            frame, imgBg = cv2.resize(frame, (640, 480)), cv2.resize(imgBg, (640, 480))
             frame = seg.removeBG(frame, imgBg, threshold=0.55)
         try:
             ret, buffer=cv2.imencode('.jpg',frame)
             frame=buffer.tobytes()
             yield(b'--frame\r\n'
-                    b'Content-Type: image/jpeg\r\n\r\n' + img_blend + b'\r\n')
+                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
         except Exception as e:
                 pass
 
