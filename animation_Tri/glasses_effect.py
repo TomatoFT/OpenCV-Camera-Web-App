@@ -7,9 +7,7 @@ import numpy as np
 # from PIL import Image, ImageSequence
 
 
-frame_counter = 0
-frame_counter_horn = 0
-frame_counter_heart = 0
+
 mp_drawing = mp.solutions.drawing_utils
 mp_drawing_styles = mp.solutions.drawing_styles
 mp_hands = mp.solutions.hands
@@ -88,7 +86,11 @@ hands =  mp_hands.Hands(
     model_complexity=0,
     min_detection_confidence=0.5,
     min_tracking_confidence=0.5)
-  
+
+frame_counter = 0
+frame_counter_horn = 0
+frame_counter_heart = 0
+
 def glasses_effect(cap):
   while cap.isOpened() or cap1.isOpened() or cap2.isOpened():
 
@@ -172,7 +174,4 @@ def glasses_effect(cap):
     frame = cv2.flip(image, 1)
     return frame
   # Flip the image horizontally for a selfie-view display.
-  cv2.imshow('MediaPipe Face Mesh', frame)
-
-cap.release()
 cap1.release()
