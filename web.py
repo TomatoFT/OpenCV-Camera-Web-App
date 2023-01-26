@@ -217,13 +217,14 @@ def record_generate_frames_3():
     scale_fact = 1
     segment_count = fps*3
     segment_height = int(height*scale_fact/segment_count)
-    print('segment_height:', segment_height)
     fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     out = cv2.VideoWriter('Upload/Anima3.avi', fourcc, 20.0, (640, 450))
     frames = []
     temp = None
     t1 = perf_counter()
+    count = 0
     while True:
+        count+=1
         success,frame=camera.read()
         X = frame
         if not success:
@@ -232,14 +233,15 @@ def record_generate_frames_3():
             if scale_fact != 1:
                 frame = cv2.resize(frame, (int(frame.shape[1]*scale_fact), int(frame.shape[0]*scale_fact)))
             frames.append(frame)
-            
+            # print('scale fact: ', scale_fact, ' segment height: ', segment_height)
             if len(frames) >= segment_count:    
                 segments = []
                 for i,frame in enumerate(frames):
                     X = frame[i*segment_height:(i+1)*segment_height]
+                    print(X)
                     segments.append(X)
                 frame = np.concatenate(segments, axis=0)
-                print(frame.shape)
+                cv2.imwrite(f'video/pic_{count}.jpg', frame)
                 out.write(frame)
                 frames.pop(0)
                 t2 = perf_counter()

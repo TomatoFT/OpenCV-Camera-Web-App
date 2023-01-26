@@ -1,12 +1,18 @@
 import cv2
 import mediapipe as mp
+from animations.landmark_detection_1 import * 
 
 # video = cv2.VideoCapture(0)
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands()
 mp_draw = mp.solutions.drawing_utils
+mp_drawing = mp.solutions.drawing_utils
+mp_face_mesh = mp.solutions.face_mesh
+drawing_spec = mp_drawing.DrawingSpec(thickness=1, circle_radius=1)
 img_1 = cv2.imread('Photo/magic_circle_ccw.png', -1)
 img_2 = cv2.imread('Photo/magic_circle_cw.png', -1)
+left_eye = cv2.imread('Photo/left_eye.jpg')
+right_eye = cv2.imread('Photo/right_eye.jpg')
 
 def position_data(lmlist):
     global wrist, thumb_tip, index_mcp, index_tip, midle_mcp, midle_tip, ring_tip, pinky_tip
@@ -46,7 +52,9 @@ def doctor_strange(frame):
             img2_fg = cv2.bitwise_and(overlay_color, overlay_color, mask=mask)
             newFrame[y:y + h, x:x + w] = cv2.add(img1_bg, img2_fg)
 
-            return newFrame 
+            return newFrame
+        rgbimg=cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        face_results = mp_face_mesh.FaceMesh(min_detection_confidence=0.5, min_tracking_confidence=0.5).process(rgbimg)
         frame=cv2.flip(frame,1)
         results = hands.process(frame)
         deg = 0
@@ -108,5 +116,19 @@ def doctor_strange(frame):
                         if (diameter != 0):
                             frame = transparent(rotated1, x1, y1, shield_size)
                             frame = transparent(rotated2, x1, y1, shield_size)
+        if face_results.multi_face_landmarks:
+                        _, left_eye_status = isOpen(frame, face_results, 'LEFT EYE', 
+                                            threshold=4.5 , display=False)
+                        _, right_eye_status = isOpen(frame, face_results, 'RIGHT EYE', 
+                                            threshold=4.5, display=False)
+                        for face_landmarks in face_results.multi_face_landmarks:
+                            mp_drawing.draw_landmarks(image=frame, landmark_list=face_landmarks, connections=mp_face_mesh.FACEMESH_CONTOURS, landmark_drawing_spec=drawing_spec, connection_drawing_spec= drawing_spec)
+                            for face_num, face_landmarks in enumerate(face_results.multi_face_landmarks):
+                                if left_eye_status[face_num] == 'OPEN':  
+                                    frame = overlay(frame, left_eye, face_landmarks,
+                                    'LEFT EYE', mp_face_mesh.FACEMESH_LEFT_EYE, display=False)
+                                if right_eye_status[face_num] == 'OPEN':
+                                    frame = overlay(frame, right_eye, face_landmarks,
+                                    'RIGHT EYE', mp_face_mesh.FACEMESH_RIGHT_EYE, display=False)
 
         return frame

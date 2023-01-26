@@ -39,9 +39,10 @@ while(cap.isOpened()):
             break
         t1 = perf_counter()
     # frame = noodled_effect(new_frame)
-    # cv2.imshow("winname", frame)
     # frames.pop(0)
     # t2 = perf_counter()
+    cv2.imshow("winname", frame)
+
     # delay = int(1000/fps - (t2-t1)*1000)
     # delay = delay if delay >1 else 1
     # if cv2.waitKey(delay) & 0xFF == ord('q'):
