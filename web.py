@@ -1,17 +1,14 @@
-from flask import Flask, render_template, Response, request, send_file, send_from_directory
+from flask import Flask, render_template, Response, request, send_from_directory
 import cv2
 import datetime, time
 import os, sys
 import numpy as np
 from time import perf_counter
 from threading import Thread
-from animations.main import MU_effect, Barca_effect
+from animations.main import MU_effect
 from animations.trial import tiktok_animation 
 from animations.segmentation import Segmentation
-from animations.ar import doctor_strange
-from animation_Tri.glasses_effect import *
-from mediapipe.python.solutions.drawing_utils import _normalized_to_pixel_coordinates
-
+from animations.doctorStrange import doctor_strange
 
 app=Flask(__name__, static_url_path='/static/', template_folder='static/templates')
 app.static_folder = 'static'
@@ -67,91 +64,22 @@ def record_generate_frames_1():
 
 def generate_frames_2():
     camera=cv2.VideoCapture(0)
-    camera.get(cv2.CAP_PROP_BUFFERSIZE)
-    frame_counter = 0
-    frame_counter_horn = 0
-    frame_counter_heart = 0
-    okay1  , frame1 = cap1.read()
-    okay1  , frame2 = cap2.read()
-    okay1  , frame_horn = cap_horn.read()
-    okay1  , frame_heart = cap_heart.read()
+    camera.get(cv2.CAP_PROP_BUFFERSIZE)    
     while True:
         ## read the camera frame
-        success,image=camera.read()
+        success,frame=camera.read()
         if not success:
-            pass
+            break
         else:
-            # frame = MU_effect(frame)
-            frame_counter += 1
-            if frame_counter == cap2.get(cv2.CAP_PROP_FRAME_COUNT):
-                frame_counter = 0 #Or whatever as long as it is the same as next line
-                cap2.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            
-            frame_counter_horn += 1
-            if frame_counter_horn == cap_horn.get(cv2.CAP_PROP_FRAME_COUNT):
-                frame_counter_horn = 0 #Or whatever as long as it is the same as next line
-                cap_horn.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            
-            frame_counter_heart += 1
-            if frame_counter_heart == cap_heart.get(cv2.CAP_PROP_FRAME_COUNT):
-                frame_counter_heart = 0 #Or whatever as long as it is the same as next line
-                cap_heart.set(cv2.CAP_PROP_POS_FRAMES, 0)
-            
-
-            # To improve performance, optionally mark the image as not writeable to
-            # pass by reference.
-
-            image.flags.writeable = False
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            results_hands = hands.process(image)
-            results = face_mesh.process(image)
-
-            # Draw the face mesh annotations on the image.
-            image.flags.writeable = True
-            image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-
-
-            if results_hands.multi_hand_landmarks:
-                for hand_landmarks in results_hands.multi_hand_landmarks:
-                
-                    image_rows, image_cols, _ = image.shape
-                    
-                    count = _normalized_to_pixel_coordinates(hand_landmarks.landmark[8].x,hand_landmarks.landmark[8].y,
-                                                            image_cols,image_rows)
-
-
-                    image = transparent2(image, frame1, count[0]-110, count[1]-160,0.5)
-
-                # cv2.putText(image, "Good Night!!", count, cv2.FONT_HERSHEY_SIMPLEX, 2, (0, 0, 255,0.4), 3,cv2.LINE_AA)
-
-
-            if results.multi_face_landmarks:
-                for face_landmarks in results.multi_face_landmarks:
-                
-
-                    image_rows, image_cols, _ = image.shape
-                    
-                    coor1 = _normalized_to_pixel_coordinates(face_landmarks.landmark[7].x,face_landmarks.landmark[7].y, image_cols,image_rows)
-                    # image = transparent(image, glass, coor1[0]-30, coor1[1]-70, (150,150))
-
-                    coor2 = _normalized_to_pixel_coordinates(face_landmarks.landmark[6].x,face_landmarks.landmark[6].y, image_cols,image_rows)
-
-                    image = transparent2(image, frame2, coor2[0]-160, coor2[1] - 220,0.5)
-
-                    image = transparent2(image, frame_horn, coor2[0]-225, coor2[1] - 220,0.7)
-
-                    out.write(image)
-        
-                    image = cv2.flip(image, 1)
+            frame = MU_effect(frame)
         try:
-            ret, buffer=cv2.imencode('.jpg',image)
-            image=buffer.tobytes()
-
+            ret, buffer=cv2.imencode('.jpg',frame)
+            frame=buffer.tobytes()
             yield(b'--frame\r\n'
-                    b'Content-Type: image/jpeg\r\n\r\n' + image + b'\r\n')
+                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
         except Exception as e:
             pass
-
+    
 def record_generate_frames_2():
     camera=cv2.VideoCapture(0)
     camera.get(cv2.CAP_PROP_BUFFERSIZE)    
